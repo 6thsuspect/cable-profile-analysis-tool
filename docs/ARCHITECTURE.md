@@ -2,6 +2,14 @@
 
 ## Cable Profile & Point-Load Analysis Tool
 
+> [!IMPORTANT]
+> **This document describes version 1.x and has not been updated for the 2.0 physics
+> rewrite.** In 2.0 the horizontal tension `H` is solved from axial compatibility against
+> the cable's unstressed length rather than accepted as an input, and the solver module structure below has been replaced by `parabolic.ts`, `elasticCatenary.ts`, `structure.ts`, `capacity.ts` and `verification.ts`.
+> See [`PHYSICS.md`](PHYSICS.md) for the authoritative formulation and
+> [`CHANGELOG.md`](CHANGELOG.md) for the full list of changes.
+
+
 **Version:** 1.0.0  
 **Author:** Arvind Singh Rawat
 
