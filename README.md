@@ -1,15 +1,54 @@
-# Cable Profile & Tension Analysis Tool
+# Cable Profile & Point-Load Analysis Tool
 
-An interactive engineering application for analysing flexible cables spanning between tower pulleys and anchored to rock behind the towers.
+An interactive engineering application for analysing flexible cables spanning a crossing
+between two masts and anchored behind them — sized for the real job of drawing a girder,
+slab or gantry across a ravine on a temporary track cable.
 
 ## 📌 Overview
 
-**Cable Profile & Tension Analysis Tool** calculates the cable profile, tension, slope/angles, point-load effects, backstay forces and tower/pulley reactions. The application provides an interactive diagram, step-by-step calculations, validation checks and PDF report generation.
+The tool calculates the cable profile, tension, angles, point-load effects, backstay
+forces, tower and anchor reactions, capacity utilisation and the **break point** — the
+load multiplier at which the first limit state is reached and the load at which the rope
+ruptures.
 
-The tool supports both:
+The physics is **length-compatible and elastic**. The cable has an unstressed (cut)
+length `L₀`, and the horizontal tension `H` is *solved* from axial compatibility rather
+than accepted as an input:
 
-* **Parabolic cable analysis** — self-weight uniformly distributed per unit horizontal projection.
-* **Catenary analysis** — self-weight uniformly distributed per unit actual cable length.
+```
+S(H) = L₀·(1 + α·ΔT) + (1/EA)·∫T ds + δ_support(H)
+```
+
+This is the difference that matters. When `H` is an input, the deflection under a point
+load is `δ = P·L/(4H)` — linear in `P` and unbounded, so the sag grows without limit and
+no tension limit is ever reached. With the cut length fixed, adding load pulls the cable
+*tighter*: the sag grows only by the elastic stretch of the rope (millimetres), the
+tension climbs instead, and it climbs until something genuinely fails.
+
+Two shape models are available:
+
+* **Elastic parabolic (segmental)** — load per unit horizontal projection, segmented at
+  every point load. Fast and accurate below about 1/10 sag ratio.
+* **Elastic catenary (exact)** — a chain of exact elastic-catenary elements with point
+  loads. No small-sag assumption; this is the reference model.
+
+📖 **See [`docs/PHYSICS.md`](docs/PHYSICS.md) for the complete formulation, the
+approximations that remain, and the 16 closed-form benchmarks the solver validates itself
+against.**
+
+---
+
+## ✅ Verifying the build
+
+```bash
+npm run verify      # typecheck + numeric benchmarks + render/PDF smoke test
+npm run check       # verification suite and a full analysis of every preset
+npm run check:ui    # server-renders every panel and generates every PDF
+```
+
+`npm run check` prints all 16 benchmarks with expected vs computed values and relative
+errors. The same table is shown in the app under *Equations & Verification* and in the
+PDF report.
 
 ---
 
@@ -52,6 +91,65 @@ The main valley cable passes over pulleys located at the top of the towers and c
 * PDF calculation report.
 * Unit-aware input and output.
 * Numerical solver with convergence checks.
+
+### Physical modelling
+
+* **Length-compatible elastic solver** — `H` solved from the cut length, so sag under
+  load is physically bounded.
+* **Installed state** defined by target sag, target tension or cut length; the required
+  cut length is reported as a construction output.
+* **Elastic elongation, temperature change and tower-top flexibility** all enter the
+  compatibility equation. A temperature drop correctly *raises* the tension.
+* **Exact elastic catenary with point loads** — a Newton-solved chain of closed-form
+  elements, with the parabolic solution as the seed.
+
+### Capacity and the break point
+
+* **Cable section catalogue** — 6×36 and 6×19 wire rope, spiral strand, full-locked coil
+  and 7-wire strand, with area, modulus, MBL and mass.
+* **Configurable strength limits** — MBL, termination efficiency, saddle bending
+  efficiency, number of parallel ropes, load-sharing factor, factor of safety and a
+  separate ULS material factor.
+* **Break-point search** — the variable-load multiplier at which each limit state is
+  reached, in order, plus the load at rupture. If no variable load is applied it reports
+  the maximum midspan payload directly.
+* **Automatic section suggestion** when a strength check fails.
+
+### Structure and site
+
+* **Three saddle idealisations** — balanced backstay, frictionless roller saddle, clamped
+  head with prescribed backstay tension.
+* **Tower checks** — base axial, shear and moment, Euler buckling, N–M interaction and
+  overturning.
+* **Anchor checks** — uplift and sliding, with block weight, rock/ground tie-downs,
+  friction and passive restraint, plus the block weight each check demands.
+* **Ravine geometry** — bank levels, bed level and position, crest positions, highest
+  flood level and required clearance, with the clearance assessed over the actual gap.
+
+### Launching
+
+* **Incremental launching module** — total weight, unit length, number of bogies, spacing,
+  weight distribution, dynamic amplification factor and cable-to-soffit depth.
+* **Launching envelope** — the unit swept across the crossing, with tension, sag,
+  clearance and saddle reactions plotted against nose position and the governing position
+  identified. The critical position is generally *not* midspan.
+* Weight still carried by the banks while bogies are off the span is accounted for
+  separately.
+
+### Analysis and reporting
+
+* **Load combinations** — installed, service, service ± 25 °C, service + wind and
+  factored ULS, all with editable factors.
+* **Stiffness reporting** — EA, Dischinger equivalent modulus, vertical stiffness at a
+  probe point, and the `dH/dP`, `dSag/dP`, `dSag/dT`, `dH/dT` sensitivities, each obtained
+  by re-solving the nonlinear problem.
+* **Built-in verification** — 16 closed-form benchmarks reported in the UI and the PDF.
+* **Nine-page PDF calculation report** including the figure, every input, the governing
+  case in detail, all capacity checks, the break point, the launching envelope, the
+  verification table, the assumptions and the full calculation trail.
+* **Six worked scenarios**, including a deliberately overloaded one that demonstrates the
+  break point and a legacy rigid mode that reproduces the old unbounded-sag behaviour for
+  comparison.
 
 ---
 
